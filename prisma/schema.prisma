@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------
+// User & Profile Service
+// -----------------------------------------
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  supabaseAuthId    String             @unique // Maps to Supabase auth.users
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  profile           Profile?
+  readinessScore    ReadinessScore?
+  portfolioHealth   PortfolioHealthScore?
+  simulatorAccount  SimulatorAccount?
+  watchlists        Watchlist[]
+  quizAttempts      QuizAttempt[]
+  aiConversations   AiConversation[]
+  notifications     Notification[]
+  subscriptions     Subscription[]
+  student           Student?
+}
+
+model Profile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  displayName       String?
+  avatarUrl         String?
+  experienceLevel   String?  // Beginner, Intermediate, Advanced
+  riskProfile       String?  // Conservative, Moderate, Aggressive
+  xp                Int      @default(0)
+  level             Int      @default(1)
+  learningStreak    Int      @default(0)
+  coins             Int      @default(0)
+}
+
+model ReadinessScore {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  overallScore      Float    @default(0.0) // 0 - 100
+  riskManagement    String?  // A, B, C, D
+  diversification   String?
+  stockAnalysis     String?
+}
+
+model PortfolioHealthScore {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  score             Float    @default(0.0)
+  concentrationRisk Float    @default(0.0)
+  volatility        Float    @default(0.0)
+  updatedAt         DateTime @updatedAt
+}
+
+// -----------------------------------------
+// Learning Service
+// -----------------------------------------
+model LearningPath {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id             String          @id @default(uuid())
+  learningPathId String
+  learningPath   LearningPath    @relation(fields: [learningPathId], references: [id])
+  title          String
+  content        String          // Could be JSON or Markdown
+  type           String          // Quick, Deep, Simulation, CaseStudy
+  versions       LessonVersion[]
+  quizzes        Quiz[]
+}
+
+model LessonVersion {
+  id          String   @id @default(uuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  versionNum  Int
+  content     String
+  createdAt   DateTime @default(now())
+}
+
+model Quiz {
+  id          String        @id @default(uuid())
+  lessonId    String
+  lesson      Lesson        @relation(fields: [lessonId], references: [id])
+  questions   Json          // Scenario-based MCQs
+  attempts    QuizAttempt[]
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  score       Float
+  passed      Boolean
+  attemptDate DateTime @default(now())
+}
+
+// -----------------------------------------
+// Market & Simulator Service
+// -----------------------------------------
+model Stock {
+  id          String       @id @default(uuid())
+  ticker      String       @unique
+  name        String
+  sector      String?
+  prices      StockPrice[]
+  positions   SimulatorPosition[]
+}
+
+model StockPrice {
+  id          String   @id @default(uuid())
+  stockId     String
+  stock       Stock    @relation(fields: [stockId], references: [id])
+  price       Float
+  timestamp   DateTime @default(now())
+}
+
+model Watchlist {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  stocks      Json     // Array of stock tickers or IDs
+}
+
+model SimulatorAccount {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  cashBalance Float    @default(1000000.0) // Virtual ₹10,00,000
+  orders      SimulatorOrder[]
+  positions   SimulatorPosition[]
+}
+
+model SimulatorOrder {
+  id          String           @id @default(uuid())
+  accountId   String
+  account     SimulatorAccount @relation(fields: [accountId], references: [id])
+  ticker      String
+  type        String           // Buy, Sell
+  quantity    Int
+  price       Float
+  status      String           // Pending, Executed, Failed
+  createdAt   DateTime         @default(now())
+}
+
+model SimulatorPosition {
+  id          String           @id @default(uuid())
+  accountId   String
+  account     SimulatorAccount @relation(fields: [accountId], references: [id])
+  stockId     String
+  stock       Stock            @relation(fields: [stockId], references: [id])
+  quantity    Int
+  averagePrice Float
+}
+
+// -----------------------------------------
+// Certifications & Gamification
+// -----------------------------------------
+model Certification {
+  id          String   @id @default(uuid())
+  name        String   // Bronze, Silver, Gold, Platinum
+  description String?
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String
+  iconUrl     String?
+}
+
+model Challenge {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+}
+
+// -----------------------------------------
+// AI & Notifications
+// -----------------------------------------
+model AiConversation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  context     String   // Mentor, Coach, Compare
+  messages    Json     // Array of chat messages
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  message     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// -----------------------------------------
+// Subscriptions & B2B (Enterprise)
+// -----------------------------------------
+model Subscription {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  tier        String   // Free, Pro, Elite
+  status      String   // Active, Canceled, Expired
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+}
+
+model Organization {
+  id          String      @id @default(uuid())
+  name        String
+  classrooms  Classroom[]
+}
+
+model Classroom {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  students       Student[]
+}
+
+model Student {
+  id          String     @id @default(uuid())
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id])
+  classroomId String
+  classroom   Classroom  @relation(fields: [classroomId], references: [id])
+}
