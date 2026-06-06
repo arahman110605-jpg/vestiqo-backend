@@ -10,6 +10,7 @@ export class SupabaseStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('SUPABASE_JWT_SECRET')!,
+      algorithms: ['HS256'],
     });
   }
 
