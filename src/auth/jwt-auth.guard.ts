@@ -20,4 +20,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
     return super.canActivate(context);
   }
+
+  handleRequest(err: any, user: any, info: any) {
+    if (err || !user) {
+      console.error('JWT Authentication Error:', err);
+      console.error('JWT Info (reason):', info);
+      console.error('User was:', user);
+      throw err || new UnauthorizedException('JWT Validation Failed');
+    }
+    return user;
+  }
 }
