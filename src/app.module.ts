@@ -10,12 +10,21 @@ import { SimulatorModule } from './simulator/simulator.module';
 import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+
 @Module({
-  imports: [AuthModule, UserModule, LearningModule, MarketModule, SimulatorModule, AiModule],
+  imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 30, // Max 30 requests per minute globally per IP
+    }]),
+    AuthModule, UserModule, LearningModule, MarketModule, SimulatorModule, AiModule
+  ],
   controllers: [AppController],
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

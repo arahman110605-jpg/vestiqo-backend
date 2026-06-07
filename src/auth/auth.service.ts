@@ -45,6 +45,11 @@ export class AuthService {
               concentrationRisk: 0,
               volatility: 0,
             }
+          },
+          simulatorAccount: {
+            create: {
+              cashBalance: 1000000.0
+            }
           }
         },
         include: { profile: true },

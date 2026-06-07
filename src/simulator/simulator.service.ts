@@ -43,6 +43,10 @@ export class SimulatorService {
   }
 
   async executeOrder(userId: string, ticker: string, quantity: number, type: 'Buy' | 'Sell', currentPrice: number) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new BadRequestException('Quantity must be a positive integer.');
+    }
+
     const account = await this.getSimulatorAccount(userId);
     const orderCost = quantity * currentPrice;
     
