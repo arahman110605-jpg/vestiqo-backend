@@ -20,6 +20,7 @@ export class AiMentorService {
       The user is at experience level: ${profile?.experienceLevel || 'Beginner'}.
       Note: This user has recently struggled with the following topics: ${weakTopics}.
       If relevant, gently weave in explanations relating to their weak topics.
+      CRITICAL: Keep your answers SHORT, smart, and understandable in SIMPLE language. Avoid overwhelming the user with long paragraphs.
     `;
 
     // 2. Route through the safe AI Gateway
