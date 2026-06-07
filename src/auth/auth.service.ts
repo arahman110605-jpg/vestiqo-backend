@@ -28,8 +28,24 @@ export class AuthService {
               experienceLevel: 'Beginner',
               xp: 0,
               level: 1,
+              learningStreak: 0,
             },
           },
+          readinessScore: {
+            create: {
+              overallScore: 0,
+              riskManagement: 'N/A',
+              diversification: 'N/A',
+              stockAnalysis: 'N/A',
+            }
+          },
+          portfolioHealth: {
+            create: {
+              score: 0,
+              concentrationRisk: 0,
+              volatility: 0,
+            }
+          }
         },
         include: { profile: true },
       });

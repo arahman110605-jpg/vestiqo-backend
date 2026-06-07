@@ -19,17 +19,10 @@ export class UserService {
       throw new NotFoundException('User not found. Please call POST /auth/sync first.');
     }
 
-    // Mock badges for Phase 7
-    const mockBadges = [
-      { name: 'First Trade', icon: '🎯' },
-      { name: 'Quiz Master', icon: '🧠' },
-      { name: '7-Day Streak', icon: '🔥' },
-      { name: 'Diversifier', icon: '🍕' }
-    ];
-
+    // TODO: Fetch actual badges from the database
     return {
       ...user,
-      badges: mockBadges
+      badges: []
     };
   }
 
