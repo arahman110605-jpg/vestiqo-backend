@@ -7,22 +7,11 @@ import { passportJwtSecret } from 'jwks-rsa';
 @Injectable()
 export class SupabaseStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly configService: ConfigService) {
-    const supabaseUrl = configService.get<string>('SUPABASE_URL')!;
-    const supabaseKey = configService.get<string>('SUPABASE_KEY')!;
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKeyProvider: passportJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: `${supabaseUrl}/auth/v1/jwks`,
-        requestHeaders: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      }),
-      algorithms: ['RS256'],
+      secretOrKey: configService.get<string>('SUPABASE_JWT_SECRET')!,
+      algorithms: ['HS256'],
     });
   }
 
