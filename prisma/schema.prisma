@@ -73,18 +73,32 @@ model LearningPath {
   id          String   @id @default(uuid())
   name        String
   description String?
+  order       Int      @default(0)
   lessons     Lesson[]
 }
 
 model Lesson {
-  id             String          @id @default(uuid())
-  learningPathId String
-  learningPath   LearningPath    @relation(fields: [learningPathId], references: [id])
-  title          String
-  content        String          // Could be JSON or Markdown
-  type           String          // Quick, Deep, Simulation, CaseStudy
-  versions       LessonVersion[]
-  quizzes        Quiz[]
+  id              String          @id @default(uuid())
+  learningPathId  String
+  learningPath    LearningPath    @relation(fields: [learningPathId], references: [id])
+  title           String
+  content         String          // Legacy field — kept for backward compat
+  type            String          // Flash, Deep, Simulation, CaseStudy
+  durationMinutes Int             @default(2)
+  order           Int             @default(0)
+  steps           LessonStep[]
+  versions        LessonVersion[]
+  quizzes         Quiz[]
+}
+
+model LessonStep {
+  id          String   @id @default(uuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type        String   // learn_card, interactive, scenario, quiz, ai_feedback
+  title       String?
+  content     Json     // Flexible JSON payload per step type
+  order       Int      @default(0)
 }
 
 model LessonVersion {

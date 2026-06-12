@@ -7,13 +7,23 @@ const prisma = new PrismaClient();
 export class LearningService {
   async getLearningPaths() {
     return prisma.learningPath.findMany({
+      orderBy: { order: 'asc' },
       include: {
         lessons: {
+          orderBy: { order: 'asc' },
           include: {
+            steps: { orderBy: { order: 'asc' } },
             quizzes: true,
           }
         },
       },
+    });
+  }
+
+  async getLessonSteps(lessonId: string) {
+    return prisma.lessonStep.findMany({
+      where: { lessonId },
+      orderBy: { order: 'asc' },
     });
   }
 
