@@ -70,7 +70,6 @@ export class MarketSyncService {
       data: {
         stockId: resolvedStockId!,
         price,
-        change: result.meta.previousClose ? price - result.meta.previousClose : 0,
       },
     });
 

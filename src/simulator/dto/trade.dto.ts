@@ -2,6 +2,9 @@ import { IsIn, IsInt, IsNumber, IsString, Min } from 'class-validator';
 
 export class TradeDto {
   @IsString()
+  userId: string;
+
+  @IsString()
   ticker: string;
 
   @IsInt()
