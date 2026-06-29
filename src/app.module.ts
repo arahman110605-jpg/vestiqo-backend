@@ -9,6 +9,7 @@ import { MarketModule } from './market/market.module';
 import { SimulatorModule } from './simulator/simulator.module';
 import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoggingModule } from './common/logger/logger.module';
@@ -19,6 +20,7 @@ import { GamificationModule } from './gamification/gamification.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     RedisModule,
     LoggingModule,
