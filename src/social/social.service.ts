@@ -1,24 +1,47 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SocialService {
   private readonly logger = new Logger(SocialService.name);
 
+  constructor(private readonly prisma: PrismaService) {}
+
   async getStockDiscussionThreads(ticker: string) {
-    // Fetch discussion threads specific to a stock ticker.
-    // e.g., Return all threads where context is 'TCS'
-    return [
-      { author: 'User123', content: 'TCS Q4 results look incredibly strong!', upvotes: 24, timestamp: new Date() },
-      { author: 'TraderX', content: 'What is a good entry price?', upvotes: 5, timestamp: new Date() }
-    ];
+    const threads = await this.prisma.discussionThread.findMany({
+      where: { ticker },
+      include: {
+        posts: {
+          include: { user: { select: { id: true, profile: { select: { displayName: true } } } } },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return threads;
   }
 
-  async postToStockDiscussion(userId: string, ticker: string, content: string) {
-    this.logger.log(`User ${userId} posted to ${ticker} discussion.`);
-    // Insert into DB.
-    return { success: true };
+  async createThread(ticker: string, userId: string, title: string) {
+    return this.prisma.discussionThread.create({
+      data: { ticker, title },
+    });
+  }
+
+  async postToThread(threadId: string, userId: string, content: string) {
+    const thread = await this.prisma.discussionThread.findUnique({
+      where: { id: threadId },
+    });
+    if (!thread) throw new NotFoundException('Thread not found');
+
+    return this.prisma.discussionPost.create({
+      data: { threadId, userId, content },
+    });
+  }
+
+  async upvotePost(postId: string) {
+    return this.prisma.discussionPost.update({
+      where: { id: postId },
+      data: { upvotes: { increment: 1 } },
+    });
   }
 }

@@ -1,22 +1,37 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { createClient } from 'redis';
+import { REDIS_CLIENT } from '../redis/redis.module';
 import OpenAI from 'openai';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AiGatewayService {
   private readonly logger = new Logger(AiGatewayService.name);
   private openai: OpenAI;
 
-  constructor() {
-    // Initialize OpenAI SDK
+  constructor(
+    @Inject(REDIS_CLIENT) private readonly redis: ReturnType<typeof createClient> | null,
+  ) {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'development-key' });
   }
 
-  /**
-   * Core routing method for all AI calls. Enforces guardrails and handles errors.
-   */
   async generateResponse(systemPrompt: string, userPrompt: string): Promise<string> {
+    const cacheKey = `ai:cache:${crypto.createHash('sha256').update(systemPrompt + userPrompt).digest('hex')}`;
+
+    // 1. Check Redis cache
+    if (this.redis) {
+      try {
+        const cached = await this.redis.get(cacheKey);
+        if (cached) {
+          this.logger.log('AI cache hit');
+          return JSON.parse(cached);
+        }
+      } catch (err) {
+        this.logger.warn('Redis cache read failed: ' + err.message);
+      }
+    }
+
     try {
-      // 1. Enforce Finance Guardrails (Pre-processing)
       const safetySystemInstruction = `
         ${systemPrompt}
         
@@ -27,20 +42,28 @@ export class AiGatewayService {
         4. Always maintain a beginner-friendly, educational tone.
       `;
 
-      // 2. Call OpenAI GPT-4o-Mini
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: safetySystemInstruction },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.2, // Low temperature for factual consistency
+        temperature: 0.2,
       });
 
-      // 3. Logging (Post-processing)
+      const content = response.choices[0]?.message?.content ?? '';
       this.logger.log(`AI Call successful. User Prompt length: ${userPrompt.length}`);
-      
-      return response.choices[0]?.message?.content ?? '';
+
+      // 2. Cache the response
+      if (this.redis && content) {
+        try {
+          await this.redis.setEx(cacheKey, 3600, JSON.stringify(content)); // 1 hour TTL
+        } catch (err) {
+          this.logger.warn('Redis cache write failed: ' + err.message);
+        }
+      }
+
+      return content;
     } catch (error) {
       this.logger.error('Failed to generate AI response', error);
       throw new HttpException('AI Service is currently unavailable.', HttpStatus.SERVICE_UNAVAILABLE);

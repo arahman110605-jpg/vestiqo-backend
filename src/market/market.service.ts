@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MarketService {
   private readonly logger = new Logger(MarketService.name);
 
+  constructor(private readonly prisma: PrismaService) {}
+
   async getStocks() {
     // Fetch all stocks and their latest price
-    const stocks = await prisma.stock.findMany({
+    const stocks = await this.prisma.stock.findMany({
       include: {
         prices: {
           orderBy: { timestamp: 'desc' },
@@ -28,7 +28,7 @@ export class MarketService {
   }
 
   async fetchLivePrice(ticker: string): Promise<number> {
-    const stock = await prisma.stock.findUnique({
+    const stock = await this.prisma.stock.findUnique({
       where: { ticker },
       include: {
         prices: { orderBy: { timestamp: 'desc' }, take: 1 }

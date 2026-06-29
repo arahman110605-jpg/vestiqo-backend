@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { SimulatorService } from './simulator.service';
 import { MarketService } from '../market/market.service';
+import { TradeDto } from './dto/trade.dto';
 
 @Controller('simulator')
 export class SimulatorController {
@@ -16,19 +17,19 @@ export class SimulatorController {
 
   @Post('trade')
   async executeTrade(
-    @Body() body: { userId: string; ticker: string; quantity: number; type: 'Buy' | 'Sell' }
+    @Body() dto: TradeDto
   ) {
     // Fetch live price securely from backend
-    const currentPrice = await this.marketService.fetchLivePrice(body.ticker);
+    const currentPrice = await this.marketService.fetchLivePrice(dto.ticker);
     if (!currentPrice || currentPrice === 0) {
       throw new Error('Could not fetch price for ticker.');
     }
 
     return this.simulatorService.executeOrder(
-      body.userId,
-      body.ticker,
-      body.quantity,
-      body.type,
+      dto.userId,
+      dto.ticker,
+      dto.quantity,
+      dto.type,
       currentPrice
     );
   }

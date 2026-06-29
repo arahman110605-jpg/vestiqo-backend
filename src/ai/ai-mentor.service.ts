@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { AiGatewayService } from './ai-gateway.service';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 @Injectable()
 export class AiMentorService {
-  constructor(private readonly aiGateway: AiGatewayService) {}
+  constructor(
+    private readonly aiGateway: AiGatewayService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async getMentorResponse(userId: string, userMessage: string): Promise<string> {
     // 1. AI Memory Layer: Fetch user's recent weaknesses
-    const profile = await prisma.profile.findUnique({ where: { userId } });
+    const profile = await this.prisma.profile.findUnique({ where: { userId } });
     
     // In a real scenario, we'd fetch failed quiz topics here
     const weakTopics = "Diversification, Bonds"; 
@@ -27,7 +28,7 @@ export class AiMentorService {
     const responseText = await this.aiGateway.generateResponse(systemPrompt, userMessage);
 
     // 3. Save conversation history
-    await prisma.aiConversation.create({
+    await this.prisma.aiConversation.create({
       data: {
         userId,
         context: 'Mentor',

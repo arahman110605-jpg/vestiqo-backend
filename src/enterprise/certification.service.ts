@@ -1,11 +1,11 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CertificationService {
   private readonly logger = new Logger(CertificationService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
 
   async attemptLicenseExam(userId: string, licenseTier: string, answers: any[]) {
     this.logger.log(`User ${userId} attempting ${licenseTier} exam.`);
@@ -14,7 +14,7 @@ export class CertificationService {
     const passed = true; // Placeholder for actual grading algorithm
 
     if (passed) {
-      await prisma.profile.update({
+      await this.prisma.profile.update({
         where: { userId },
         data: { experienceLevel: licenseTier } // Simplified for MVP
       });

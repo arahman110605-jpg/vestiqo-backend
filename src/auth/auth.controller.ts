@@ -1,6 +1,7 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
+import { SyncUserDto } from './dto/sync-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -14,12 +15,12 @@ export class AuthController {
   @Post('sync')
   async syncUser(
     @CurrentUser() user: { supabaseAuthId: string; email: string; role: string },
-    @Body() body: { displayName?: string },
+    @Body() dto: SyncUserDto,
   ) {
     return this.authService.syncUser(
       user.supabaseAuthId,
       user.email,
-      body.displayName,
+      dto.displayName,
     );
   }
 }

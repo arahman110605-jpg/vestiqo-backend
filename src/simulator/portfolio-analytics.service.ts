@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PortfolioAnalyticsService {
+  constructor(private readonly prisma: PrismaService) {}
   
   async calculatePortfolioHealthScore(userId: string) {
-    const account = await prisma.simulatorAccount.findUnique({
+    const account = await this.prisma.simulatorAccount.findUnique({
       where: { userId },
       include: { positions: { include: { stock: true } } }
     });
@@ -38,7 +37,7 @@ export class PortfolioAnalyticsService {
     const finalScore = Math.max(0, Math.min(100, diversificationScore));
 
     // Upsert into DB
-    await prisma.portfolioHealthScore.upsert({
+    await this.prisma.portfolioHealthScore.upsert({
       where: { userId },
       update: { score: finalScore, concentrationRisk: maxConcentration * 100 },
       create: { userId, score: finalScore, concentrationRisk: maxConcentration * 100 }

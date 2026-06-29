@@ -1,22 +1,21 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SimulatorService {
+  constructor(private readonly prisma: PrismaService) {}
   
   async getSimulatorAccount(userId: string) {
-    let account = await prisma.simulatorAccount.findUnique({
+    let account = await this.prisma.simulatorAccount.findUnique({
       where: { userId },
       include: { positions: { include: { stock: true } } },
     });
 
     if (!account) {
       // For prototype: Ensure the mock user exists to satisfy foreign key constraint
-      const userExists = await prisma.user.findUnique({ where: { id: userId } });
+      const userExists = await this.prisma.user.findUnique({ where: { id: userId } });
       if (!userExists) {
-        await prisma.user.create({
+        await this.prisma.user.create({
           data: {
             id: userId,
             email: `${userId}@vestiqo.com`,
@@ -34,7 +33,7 @@ export class SimulatorService {
       }
 
       // Provision the initial account with ₹10,00,000
-      account = await prisma.simulatorAccount.create({
+      account = await this.prisma.simulatorAccount.create({
         data: { userId, cashBalance: 1000000.0 },
         include: { positions: { include: { stock: true } } },
       });
@@ -50,7 +49,7 @@ export class SimulatorService {
     const account = await this.getSimulatorAccount(userId);
     const orderCost = quantity * currentPrice;
     
-    const stock = await prisma.stock.findUnique({ where: { ticker } });
+    const stock = await this.prisma.stock.findUnique({ where: { ticker } });
     if (!stock) throw new BadRequestException('Stock not found');
 
     if (type === 'Buy') {
@@ -61,7 +60,7 @@ export class SimulatorService {
       // Check if position already exists
       const existingPosition = account.positions.find(p => p.stockId === stock.id);
 
-      await prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         // Deduct Cash
         await tx.simulatorAccount.update({
           where: { id: account.id },
@@ -97,7 +96,7 @@ export class SimulatorService {
         throw new BadRequestException('Insufficient shares to sell.');
       }
 
-      await prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         // Add Cash
         await tx.simulatorAccount.update({
           where: { id: account.id },

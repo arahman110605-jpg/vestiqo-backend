@@ -9,16 +9,32 @@ import { MarketModule } from './market/market.module';
 import { SimulatorModule } from './simulator/simulator.module';
 import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
-
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { PrismaModule } from './prisma/prisma.module';
+import { LoggingModule } from './common/logger/logger.module';
+import { RedisModule } from './redis/redis.module';
+import { EnterpriseModule } from './enterprise/enterprise.module';
+import { SocialModule } from './social/social.module';
+import { GamificationModule } from './gamification/gamification.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 30, // Max 30 requests per minute globally per IP
-    }]),
-    AuthModule, UserModule, LearningModule, MarketModule, SimulatorModule, AiModule
+    PrismaModule,
+    RedisModule,
+    LoggingModule,
+    ThrottlerModule.forRoot([
+      {
+        name: 'ip',
+        ttl: 60000,
+        limit: 30, // Max 30 requests per minute globally per IP
+      },
+      {
+        name: 'user',
+        ttl: 60000,
+        limit: 60, // Max 60 requests per minute per authenticated user
+      },
+    ]),
+    AuthModule, UserModule, LearningModule, MarketModule, SimulatorModule, AiModule, EnterpriseModule, SocialModule, GamificationModule
   ],
   controllers: [AppController],
   providers: [

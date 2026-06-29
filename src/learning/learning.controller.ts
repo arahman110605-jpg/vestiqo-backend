@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Req, Body, Param } from '@nestjs/common';
 import { LearningService } from './learning.service';
 import { Public } from '../auth/public.decorator';
+import { QuizAttemptDto } from './dto/quiz-attempt.dto';
 
 @Controller('learning')
 export class LearningController {
@@ -19,9 +20,9 @@ export class LearningController {
   }
 
   @Post('quiz-attempt')
-  async submitQuizAttempt(@Req() req, @Body() body: { quizId: string; score: number; passed: boolean }) {
+  async submitQuizAttempt(@Req() req, @Body() dto: QuizAttemptDto) {
     const userId = req.user.id;
-    return this.learningService.submitQuizAttempt(userId, body.quizId, body.score, body.passed);
+    return this.learningService.submitQuizAttempt(userId, dto.quizId, dto.score, dto.passed === 'true');
   }
 
   @Get('completed-lessons')

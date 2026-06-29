@@ -1,40 +1,97 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 
-const prisma = new PrismaClient();
+let admin: any;
+try {
+  admin = require('firebase-admin');
+} catch {
+  admin = null;
+}
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
+  private readonly fcmEnabled: boolean;
 
-  /**
-   * Sends an in-app notification and an optional FCM push notification.
-   */
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {
+    if (admin && this.config.get<string>('FIREBASE_PROJECT_ID')) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: this.config.get<string>('FIREBASE_PROJECT_ID'),
+            clientEmail: this.config.get<string>('FIREBASE_CLIENT_EMAIL'),
+            privateKey: this.config.get<string>('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n'),
+          }),
+        });
+        this.fcmEnabled = true;
+        this.logger.log('Firebase Admin initialized for FCM');
+      } catch (err) {
+        this.logger.warn('Firebase Admin init failed: ' + err.message);
+        this.fcmEnabled = false;
+      }
+    } else {
+      this.fcmEnabled = false;
+    }
+  }
+
   async sendSmartNotification(userId: string, title: string, message: string, usePush: boolean = false) {
-    // 1. Save to Database for In-App Notification Center
-    await prisma.notification.create({
+    await this.prisma.notification.create({
       data: {
         userId,
         title,
         message,
-        read: false
-      }
+        read: false,
+      },
     });
 
-    // 2. Fire Push Notification via Firebase Cloud Messaging (FCM)
-    if (usePush) {
-      // In production: const fcmToken = await prisma.profile.findUnique(...)
-      // admin.messaging().send({ token: fcmToken, notification: { title, body: message }})
-      this.logger.log(`FCM Push sent to User ${userId}: ${title}`);
+    if (usePush && this.fcmEnabled) {
+      const profile = await this.prisma.profile.findUnique({ where: { userId } });
+      if (profile?.fcmToken) {
+        try {
+          await admin.messaging().send({
+            token: profile.fcmToken,
+            notification: { title, body: message },
+          });
+          this.logger.log(`FCM sent to ${userId}: ${title}`);
+        } catch (err) {
+          this.logger.warn(`FCM failed for ${userId}: ${err.message}`);
+        }
+      }
     }
   }
 
-  /**
-   * Checks for users whose streaks are about to expire.
-   */
   async triggerStreakReminders() {
     this.logger.log('Running streak reminder job...');
-    // Logic: Find users who haven't logged a lesson today and have learningStreak > 0
-    // await this.sendSmartNotification(user.id, 'Keep your streak alive! 🔥', 'Complete one quick lesson today.');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const usersWithStreak = await this.prisma.profile.findMany({
+      where: {
+        learningStreak: { gt: 0 },
+      },
+      include: { user: true },
+    });
+
+    for (const profile of usersWithStreak) {
+      const attemptsToday = await this.prisma.quizAttempt.count({
+        where: {
+          userId: profile.userId,
+          attemptDate: { gte: today },
+        },
+      });
+
+      if (attemptsToday === 0) {
+        await this.sendSmartNotification(
+          profile.userId,
+          'Keep your streak alive! 🔥',
+          'Complete one quick lesson today to maintain your learning streak.',
+          true,
+        );
+      }
+    }
   }
 }

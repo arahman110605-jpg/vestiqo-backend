@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class LearningService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getLearningPaths() {
-    return prisma.learningPath.findMany({
+    return this.prisma.learningPath.findMany({
       orderBy: { order: 'asc' },
       include: {
         lessons: {
@@ -21,14 +21,14 @@ export class LearningService {
   }
 
   async getLessonSteps(lessonId: string) {
-    return prisma.lessonStep.findMany({
+    return this.prisma.lessonStep.findMany({
       where: { lessonId },
       orderBy: { order: 'asc' },
     });
   }
 
   async submitQuizAttempt(userId: string, quizId: string, score: number, passed: boolean) {
-    const attempt = await prisma.quizAttempt.create({
+    const attempt = await this.prisma.quizAttempt.create({
       data: {
         userId,
         quizId,
@@ -39,7 +39,7 @@ export class LearningService {
 
     if (passed) {
       // Award XP to user profile
-      await prisma.profile.update({
+      await this.prisma.profile.update({
         where: { userId },
         data: {
           xp: { increment: 50 },
@@ -52,7 +52,7 @@ export class LearningService {
   }
 
   async getCompletedLessons(userId: string) {
-    const attempts = await prisma.quizAttempt.findMany({
+    const attempts = await this.prisma.quizAttempt.findMany({
       where: { userId, passed: true },
       include: { quiz: true }
     });

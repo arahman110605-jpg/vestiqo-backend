@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UserService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getProfile(email: string) {
-    let user = await prisma.user.findUnique({
+    let user = await this.prisma.user.findUnique({
       where: { email },
       include: {
         profile: true,
@@ -27,7 +27,7 @@ export class UserService {
   }
 
   async getProfileByAuthId(supabaseAuthId: string) {
-    const user = await prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { supabaseAuthId },
       include: {
         profile: true,
