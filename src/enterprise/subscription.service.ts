@@ -20,10 +20,12 @@ export class SubscriptionService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    if (Razorpay) {
+    const keyId = this.config.get<string>('RAZORPAY_KEY_ID');
+    const keySecret = this.config.get<string>('RAZORPAY_KEY_SECRET');
+    if (Razorpay && keyId && keySecret) {
       this.razorpay = new Razorpay({
-        key_id: this.config.get<string>('RAZORPAY_KEY_ID'),
-        key_secret: this.config.get<string>('RAZORPAY_KEY_SECRET'),
+        key_id: keyId,
+        key_secret: keySecret,
       });
     }
   }
